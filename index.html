@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10×10 Grid</title>
+    <style>
+        /* 基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 网格容器 */
+        .grid-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            gap: 1px;
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 网格单元格 */
+        .grid-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            background-color: rgba(52, 152, 219, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        /* 红色叉号（对角线连接） */
+        .cell-cross {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 4px;
+            background-color: #ff0000;
+            transform-origin: center;
+        }
+
+        .cell-cross::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ff0000;
+            transform: rotate(45deg);
+        }
+
+        .cell-cross::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ff0000;
+            transform: rotate(-45deg);
+        }
+
+        /* 悬停效果 */
+        .grid-cell:hover {
+            border-color: #fff;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        /* 游戏设置面板 */
+        .setup-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            text-align: center;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .setup-panel h2 {
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .setup-panel p {
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .setup-panel input {
+            padding: 10px;
+            font-size: 1.2rem;
+            width: 80px;
+            text-align: center;
+            border: none;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .setup-panel button {
+            padding: 10px 30px;
+            font-size: 1.2rem;
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .setup-panel button:hover {
+            background-color: #ff6666;
+            transform: scale(1.05);
+        }
+
+        /* 信息面板 */
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 500px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 100;
+            height: auto;
+            min-height: fit-content;
+        }
+
+        /* 信息面板标题 */
+        .info-panel h3 {
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+
+        /* 信息面板内容 */
+        .info-panel p {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        /* 关闭按钮 */
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 20px;
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        /* 关闭按钮悬停效果 */
+        .close-btn:hover {
+            color: #ff6b6b;
+            transform: scale(1.1);
+        }
+
+        /* 悬浮窗 */
+        .floating-window {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50%;
+            height: 50%;
+            background-color: rgba(255, 255, 255, 0.8);
+            color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 150;
+            display: none;
+            overflow-y: auto;
+        }
+
+        .floating-window h3 {
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .floating-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+        }
+
+        .floating-close-btn:hover {
+            opacity: 1;
+            color: #333;
+        }
+
+        /* 悬浮窗开关按钮 */
+        .floating-toggle {
+            position: fixed;
+            top: 50%;
+            right: -80px;
+            /* 隐藏在右侧，只露出一点 */
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px 0 0 5px;
+            cursor: pointer;
+            z-index: 160;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+            width: 100px;
+        }
+
+        .floating-toggle:hover {
+            right: 0;
+            opacity: 1;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        /* 棋子容器 */
+        .pieces-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            padding: 20px;
+        }
+
+        /* 棋子样式 */
+        .game-piece {
+            width: 50px;
+            /* 固定宽度 */
+            height: 50px;
+            /* 固定高度，确保正方形 */
+            border-radius: 0;
+            /* 正方形棋子 */
+            margin: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1rem;
+            /* 字体大小 */
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            user-select: none;
+            /* 禁止文本选择 */
+            flex-shrink: 0;
+            /* 防止收缩 */
+        }
+
+        .game-piece:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        /* 选中的棋子样式 */
+        .game-piece.selected {
+            border: 3px solid gold;
+            box-shadow: 0 0 15px gold;
+        }
+
+        /* 地图上的棋子样式 */
+        .board-piece {
+            position: absolute;
+            width: 50px;
+            /* 固定宽度 */
+            height: 50px;
+            /* 固定高度，确保正方形 */
+            border-radius: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            cursor: move;
+            user-select: none;
+            z-index: 50;
+            flex-shrink: 0;
+            /* 防止收缩 */
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .grid-cell {
+                font-size: 12px;
+            }
+
+            .info-panel {
+                width: 90%;
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .grid-cell {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 游戏设置面板 -->
+    <div class="setup-panel" id="setupPanel">
+        <h2>游戏设置</h2>
+        <p>请输入参与者数量（不超过20）：</p>
+        <input type="number" id="playerCount" min="1" max="20" value="2">
+        <button id="startGame">开始游戏</button>
+    </div>
+
+    <div class="grid-container" id="gridContainer">
+        <!-- 网格单元格将通过JavaScript动态生成 -->
+    </div>
+
+    <div class="info-panel" id="infoPanel">
+        <span class="close-btn" id="closeBtn">&times;</span>
+        <h3 id="infoTitle">点击格子</h3>
+        <p id="cellInfo">点击一个单元格查看详细信息</p>
+    </div>
+
+    <!-- 悬浮窗 -->
+    <div class="floating-window" id="floatingWindow">
+        <span class="floating-close-btn" id="floatingCloseBtn">&times;</span>
+        <div class="pieces-container" id="piecesContainer">
+            <!-- 棋子将通过JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <!-- 悬浮窗开关按钮 -->
+    <div class="floating-toggle" id="floatingToggle">
+        <span>打开悬浮窗</span>
+    </div>
+
+    <script>
+        // 生成10×10网格
+        document.addEventListener('DOMContentLoaded', function () {
+            const gridContainer = document.getElementById('gridContainer');
+            const infoPanel = document.getElementById('infoPanel');
+            const infoTitle = document.getElementById('infoTitle');
+            const cellInfo = document.getElementById('cellInfo');
+            const closeBtn = document.getElementById('closeBtn');
+            const setupPanel = document.getElementById('setupPanel');
+            const playerCountInput = document.getElementById('playerCount');
+            const startGameBtn = document.getElementById('startGame');
+            const floatingWindow = document.getElementById('floatingWindow');
+            const floatingCloseBtn = document.getElementById('floatingCloseBtn');
+            const floatingToggle = document.getElementById('floatingToggle');
+            const piecesContainer = document.getElementById('piecesContainer');
+
+            // 隐藏网格和信息面板，只显示设置面板
+            gridContainer.style.display = 'none';
+            infoPanel.style.display = 'none';
+
+            // 存储游戏数据
+            let playerCount = 2;
+
+            // 需要渐变色的格子编号
+            const gradientCells = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 16, 18, 20, 22, 24, 26, 28, 30, 31, 33, 34, 36, 38, 40, 41, 43, 44, 45, 47, 48, 50, 51, 53, 54, 55, 57, 58, 60, 61, 63, 64, 65, 67, 68, 70, 71, 73, 74, 76, 78, 80, 82, 86, 88, 90, 92, 93, 94, 95, 96, 97, 98, 99, 100];
+
+            // 第一组特殊格子：12、13、14、24、34、44、54、64、74、65
+            const specialGroup1 = [12, 13, 14, 24, 34, 44, 54, 64, 74, 65];
+
+            // 第二组特殊格子：8、18、28、38、48、58、68、78、88、98
+            const specialGroup2 = [8, 18, 28, 38, 48, 58, 68, 78, 88, 98];
+
+            // 需要黑色边缘的格子（两组特殊格子的组合 + 75号格子）
+            const blackBorderCells = [...specialGroup1, ...specialGroup2, 75];
+
+            // 生成100个单元格
+            for (let i = 1; i <= 100; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.textContent = i;
+                cell.dataset.cellNumber = i;
+
+                // 为指定的格子添加渐变色
+                if (i === 22) {
+                    // 22号格子设置为红色
+                    cell.style.background = '#ff4444';
+                    cell.style.color = '#ffffff';
+                    cell.style.textShadow = 'none';
+                } else if (gradientCells.includes(i)) {
+                    if (specialGroup1.includes(i)) {
+                        // 第一组特殊格子的渐变色（柔和紫色系）
+                        const index = specialGroup1.indexOf(i);
+                        const total = specialGroup1.length;
+                        const hue = 260 + (index / total) * 40; // 柔和紫色到淡粉色
+                        cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                        cell.style.color = '#333333';
+                        cell.style.textShadow = 'none';
+                    } else if (specialGroup2.includes(i)) {
+                        // 第二组特殊格子的渐变色（柔和绿色系）
+                        const index = specialGroup2.indexOf(i);
+                        const total = specialGroup2.length;
+                        const hue = 130 + (index / total) * 40; // 柔和绿色到淡青色
+                        cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                        cell.style.color = '#333333';
+                        cell.style.textShadow = 'none';
+                    } else {
+                        // 其他格子的柔和渐变色
+                        const index = gradientCells.indexOf(i);
+                        const total = gradientCells.length;
+                        const hue = 200 + (index / total) * 60; // 柔和蓝色到淡紫色
+                        cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                        cell.style.color = '#333333';
+                        cell.style.textShadow = 'none';
+                    }
+                } else if (i === 75) {
+                    // 75号格子与65号格子颜色相同（第一组特殊格子的紫色系）
+                    const index = specialGroup1.indexOf(65);
+                    const total = specialGroup1.length;
+                    const hue = 260 + (index / total) * 40; // 柔和紫色到淡粉色
+                    cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                    cell.style.color = '#333333';
+                    cell.style.textShadow = 'none';
+                } else if (i === 77) {
+                    // 77号格子与67号格子颜色相同
+                    const index = gradientCells.indexOf(67);
+                    const total = gradientCells.length;
+                    const hue = 200 + (index / total) * 60; // 柔和蓝色到淡紫色
+                    cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                    cell.style.color = '#333333';
+                    cell.style.textShadow = 'none';
+                } else if (i === 46) {
+                    // 46号格子与36号格子颜色相同
+                    const index = gradientCells.indexOf(36);
+                    const total = gradientCells.length;
+                    const hue = 200 + (index / total) * 60; // 柔和蓝色到淡紫色
+                    cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                    cell.style.color = '#333333';
+                    cell.style.textShadow = 'none';
+                } else if (i === 35) {
+                    // 35号格子与45号格子颜色相同
+                    const index = gradientCells.indexOf(45);
+                    const total = gradientCells.length;
+                    const hue = 200 + (index / total) * 60; // 柔和蓝色到淡紫色
+                    cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                    cell.style.color = '#333333';
+                    cell.style.textShadow = 'none';
+                } else if (i === 37) {
+                    // 37号格子与47号格子颜色相同
+                    const index = gradientCells.indexOf(47);
+                    const total = gradientCells.length;
+                    const hue = 200 + (index / total) * 60; // 柔和蓝色到淡紫色
+                    cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                    cell.style.color = '#333333';
+                    cell.style.textShadow = 'none';
+                } else if (i === 72) {
+                    // 72号格子使用柔和的蓝色渐变
+                    cell.style.background = `linear-gradient(135deg, hsl(210, 40%, 75%), hsl(250, 40%, 75%))`;
+                    cell.style.color = '#333333';
+                    cell.style.textShadow = 'none';
+                } else if (i === 32) {
+                    // 32号格子与31号格子颜色相同
+                    const index = gradientCells.indexOf(31);
+                    const total = gradientCells.length;
+                    const hue = 200 + (index / total) * 60; // 柔和蓝色到淡紫色
+                    cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                    cell.style.color = '#333333';
+                    cell.style.textShadow = 'none';
+                } else {
+                    // 普通格子使用柔和的浅灰色
+                    cell.style.background = '#f0f0f0';
+                    cell.style.color = '#333333';
+                    cell.style.textShadow = 'none';
+                    // 白色格子不显示数字
+                    cell.textContent = '';
+                }
+
+                // 为指定的格子添加黑色边缘
+                if (blackBorderCells.includes(i)) {
+                    cell.style.borderColor = '#000000';
+                    cell.style.borderWidth = '3px';
+                }
+
+                // 添加点击事件
+                cell.addEventListener('click', function () {
+                    const cellNumber = this.dataset.cellNumber;
+                    showCellInfo(cellNumber);
+                });
+
+                gridContainer.appendChild(cell);
+            }
+
+            // 存储已选择的白色格子
+            const selectedWhiteCells = [];
+
+            // 获取格子名称
+            function getCellName(cellNumber) {
+                const names = {
+                    1: '友谊船',
+                    2: '蟑螂？',
+                    3: '交通事故（其一）',
+                    11: '奖励',
+                    4: '听妈妈的话'
+
+                };
+                return names[cellNumber] || cellNumber;
+            }
+
+            // 显示单元格信息
+            function showCellInfo(cellNumber) {
+                const num = parseInt(cellNumber);
+                // 检查是否为白色格子（普通格子）
+                const isWhiteCell = !gradientCells.includes(num) &&
+                    ![22, 75, 77, 46, 35, 37, 72, 32].includes(num);
+
+                // 获取格子名称，白色格子的名字都是"奖励"
+                let cellName;
+                if (isWhiteCell) {
+                    cellName = '奖励';
+                } else {
+                    cellName = getCellName(num);
+                }
+
+                // 统一格式：标题为格子名称，第一行为坐标，第二行为详细内容
+                const info = `
+                    <p>(${Math.ceil(num / 10)}, ${num % 10 || 10})</p>
+                    <p>${getCellDescription(cellNumber)}</p>
+                `;
+
+                // 标记白色格子为已选择（如果是白色格子且未被选择过）
+                if (isWhiteCell && !selectedWhiteCells.includes(num)) {
+                    selectedWhiteCells.push(num);
+                    // 找到对应的单元格并添加红色叉号
+                    const cell = document.querySelector(`.grid-cell[data-cell-number="${num}"]`);
+                    if (cell) {
+                        // 添加叉号元素
+                        const cross = document.createElement('div');
+                        cross.className = 'cell-cross';
+                        cell.appendChild(cross);
+                    }
+                }
+
+                // 更新标题为格子名称
+                infoTitle.textContent = cellName;
+
+                cellInfo.innerHTML = info;
+                infoPanel.style.display = 'block';
+            }
+
+            // 获取单元格类型
+            function getCellType(cellNumber) {
+                const types = ['普通', '奖励', '挑战', '商店', '休息', '幸运', '陷阱', '宝藏', '传送', '特殊'];
+                return types[(cellNumber - 1) % 10];
+            }
+
+            // 获取单元格描述
+            function getCellDescription(cellNumber) {
+                const descriptions = {
+                    1: '你和朋友(选择场上的一个组)这个学期刚刚认识，玩得很融洽，很快就成了形影不离的好朋友，但是这次期末考试他抄了你的一道题，拿了满分，而你只有90分，你感到不甘心，考虑再三，你决定:',
+                    2: '你家突然出现了蟑螂泛滥的现象，经常会有蟑螂到处爬，它们大小均有1个大脚指那么大，此时面前突然出现3，4只的广东双马尾向你爬过来，你想怎么做',
+                    3: '上学路上，天气有点阴暗，雨下得淅淅沥沥，你走在人行道上，走路会选择：',
+                    4: '商店，购买道具提升能力',
+                    5: '休息区，恢复体力和精力',
+                    6: '幸运事件，惊喜不断',
+                    7: '小心陷阱，可能会有损失',
+                    8: '发现宝藏，收获满满',
+                    9: '传送门，前往未知区域',
+                    10: '特殊事件，改变游戏进程',
+                    11: '随机获得一张品质卡！'
+                };
+                // 检查是否有特定格子的描述，如果有则使用，否则使用默认描述
+                if (descriptions[cellNumber]) {
+                    return descriptions[cellNumber];
+                }
+                return descriptions[(cellNumber - 1) % 10 + 1];
+            }
+
+            // 开始游戏按钮点击事件
+            startGameBtn.addEventListener('click', function () {
+                // 获取输入的参与者数量
+                const inputCount = parseInt(playerCountInput.value);
+
+                // 验证输入值
+                if (isNaN(inputCount) || inputCount < 1 || inputCount > 20) {
+                    alert('请输入1到20之间的整数');
+                    return;
+                }
+
+                // 设置参与者数量
+                playerCount = inputCount;
+
+                // 隐藏设置面板，显示网格
+                setupPanel.style.display = 'none';
+                gridContainer.style.display = 'grid';
+
+                // 生成网格
+                generateGrid();
+
+                // 生成棋子
+                generatePieces();
+            });
+
+            // 生成网格函数
+            function generateGrid() {
+                // 清空网格容器
+                gridContainer.innerHTML = '';
+
+                // 生成10×10网格
+                for (let i = 1; i <= 100; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    cell.textContent = i;
+                    cell.dataset.cellNumber = i;
+
+                    // 为22号格子设置特殊颜色
+                    if (i === 22) {
+                        // 22号格子设置为红色
+                        cell.style.background = '#ff4444';
+                        cell.style.color = '#ffffff';
+                        cell.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)';
+                    } else if (gradientCells.includes(i)) {
+                        // 为指定的格子添加渐变色
+                        if (specialGroup1.includes(i)) {
+                            // 第一组特殊格子的渐变色（紫色系）
+                            const index = specialGroup1.indexOf(i);
+                            const total = specialGroup1.length;
+                            const hue = 270 + (index / total) * 60; // 紫色到粉色
+                            cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 60) % 360}, 40%, 75%))`;
+                            cell.style.color = '#333333';
+                            cell.style.textShadow = 'none';
+                        } else if (specialGroup2.includes(i)) {
+                            // 第二组特殊格子的渐变色（绿色系）
+                            const index = specialGroup2.indexOf(i);
+                            const total = specialGroup2.length;
+                            const hue = 120 + (index / total) * 60; // 绿色到青色
+                            cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 60) % 360}, 40%, 75%))`;
+                            cell.style.color = '#333333';
+                            cell.style.textShadow = 'none';
+                        } else {
+                            // 其他格子的连续渐变色（蓝色系）
+                            const index = gradientCells.indexOf(i);
+                            const total = gradientCells.length;
+                            const hue = 180 + (index / total) * 120; // 蓝色到紫色
+                            cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                            cell.style.color = '#333333';
+                            cell.style.textShadow = 'none';
+                        }
+                    } else if ([75, 77, 46, 35, 37, 72, 32].includes(i)) {
+                        // 为指定的格子添加渐变色
+                        if (i === 75) {
+                            // 75号格子与65号格子颜色相同（第一组特殊格子的紫色系）
+                            const index = specialGroup1.indexOf(65);
+                            const total = specialGroup1.length;
+                            const hue = 270 + (index / total) * 60; // 紫色到粉色
+                            cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 60) % 360}, 40%, 75%))`;
+                            cell.style.color = '#333333';
+                            cell.style.textShadow = 'none';
+                        } else if (i === 77) {
+                            // 77号格子与67号格子颜色相同（蓝色系）
+                            const index = gradientCells.indexOf(67);
+                            const total = gradientCells.length;
+                            const hue = 180 + (index / total) * 120; // 蓝色到紫色
+                            cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                            cell.style.color = '#333333';
+                            cell.style.textShadow = 'none';
+                        } else if (i === 46) {
+                            // 46号格子与36号格子颜色相同（蓝色系）
+                            const index = gradientCells.indexOf(36);
+                            const total = gradientCells.length;
+                            const hue = 180 + (index / total) * 120; // 蓝色到紫色
+                            cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                            cell.style.color = '#333333';
+                            cell.style.textShadow = 'none';
+                        } else if (i === 35) {
+                            // 35号格子与45号格子颜色相同（蓝色系）
+                            const index = gradientCells.indexOf(45);
+                            const total = gradientCells.length;
+                            const hue = 180 + (index / total) * 120; // 蓝色到紫色
+                            cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                            cell.style.color = '#333333';
+                            cell.style.textShadow = 'none';
+                        } else if (i === 37) {
+                            // 37号格子与47号格子颜色相同（蓝色系）
+                            const index = gradientCells.indexOf(47);
+                            const total = gradientCells.length;
+                            const hue = 180 + (index / total) * 120; // 蓝色到紫色
+                            cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                            cell.style.color = '#333333';
+                            cell.style.textShadow = 'none';
+                        } else if (i === 72) {
+                            // 72号格子使用柔和的蓝色渐变
+                            cell.style.background = `linear-gradient(135deg, hsl(200, 40%, 75%), hsl(240, 40%, 75%))`;
+                            cell.style.color = '#333333';
+                            cell.style.textShadow = 'none';
+                        } else if (i === 32) {
+                            // 32号格子与31号格子颜色相同（蓝色系）
+                            const index = gradientCells.indexOf(31);
+                            const total = gradientCells.length;
+                            const hue = 180 + (index / total) * 120; // 蓝色到紫色
+                            cell.style.background = `linear-gradient(135deg, hsl(${hue}, 40%, 75%), hsl(${(hue + 40) % 360}, 40%, 75%))`;
+                            cell.style.color = '#333333';
+                            cell.style.textShadow = 'none';
+                        }
+                    } else {
+                        // 普通格子使用柔和的浅灰色
+                        cell.style.background = '#f0f0f0';
+                        cell.style.color = '#333333';
+                        cell.style.textShadow = 'none';
+                        // 白色格子不显示数字
+                        cell.textContent = '';
+                    }
+
+                    // 为指定的格子添加黑色边缘
+                    if (blackBorderCells.includes(i)) {
+                        cell.style.borderColor = '#000000';
+                        cell.style.borderWidth = '3px';
+                    }
+
+                    // 添加点击事件
+                    cell.addEventListener('click', function () {
+                        const cellNumber = this.dataset.cellNumber;
+                        showCellInfo(cellNumber);
+                    });
+
+                    gridContainer.appendChild(cell);
+                }
+            }
+
+            // 关闭信息面板
+            closeBtn.addEventListener('click', function () {
+                infoPanel.style.display = 'none';
+            });
+
+            // 点击面板外部关闭
+            document.addEventListener('click', function (event) {
+                if (!infoPanel.contains(event.target) && !event.target.classList.contains('grid-cell')) {
+                    infoPanel.style.display = 'none';
+                }
+            });
+
+            // 悬浮窗交互逻辑
+            floatingToggle.addEventListener('click', function () {
+                if (floatingWindow.style.display === 'none' || floatingWindow.style.display === '') {
+                    floatingWindow.style.display = 'block';
+                    floatingToggle.innerHTML = '<span>关闭悬浮窗</span>';
+                } else {
+                    floatingWindow.style.display = 'none';
+                    floatingToggle.innerHTML = '<span>打开悬浮窗</span>';
+                }
+            });
+
+            // 悬浮窗关闭按钮
+            floatingCloseBtn.addEventListener('click', function () {
+                floatingWindow.style.display = 'none';
+                floatingToggle.innerHTML = '<span>打开悬浮窗</span>';
+            });
+
+            // 存储选中的棋子
+            let selectedPiece = null;
+            // 存储棋子的初始位置
+            let pieceInitialPos = { x: 0, y: 0 };
+            // 存储拖拽的偏移量
+            let dragOffset = { x: 0, y: 0 };
+
+            // 生成棋子函数
+            function generatePieces() {
+                // 清空棋子容器
+                piecesContainer.innerHTML = '';
+
+                // 生成棋子
+                for (let i = 1; i <= playerCount; i++) {
+                    const piece = document.createElement('div');
+                    piece.className = 'game-piece';
+
+                    // 生成大写英文字母（A, B, C...）
+                    const letter = String.fromCharCode(64 + i);
+                    piece.textContent = letter;
+
+                    // 为棋子设置随机颜色
+                    const hue = (i - 1) * (360 / playerCount);
+                    piece.style.background = `hsl(${hue}, 70%, 60%)`;
+
+                    // 添加点击事件，选中棋子
+                    piece.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        selectPiece(piece);
+                    });
+
+                    piecesContainer.appendChild(piece);
+                }
+            }
+
+            // 选中棋子
+            function selectPiece(piece) {
+                // 移除其他棋子的选中状态
+                document.querySelectorAll('.game-piece').forEach(p => {
+                    p.classList.remove('selected');
+                });
+                // 选中当前棋子
+                piece.classList.add('selected');
+                selectedPiece = piece;
+            }
+
+            // 开始拖拽
+            function startDrag(e) {
+                if (selectedPiece) {
+                    e.preventDefault();
+                    // 计算拖拽偏移量
+                    const rect = selectedPiece.getBoundingClientRect();
+                    dragOffset.x = e.clientX - rect.left;
+                    dragOffset.y = e.clientY - rect.top;
+                    // 记录棋子初始位置
+                    pieceInitialPos.x = rect.left;
+                    pieceInitialPos.y = rect.top;
+                    // 添加鼠标移动和释放事件
+                    document.addEventListener('mousemove', drag);
+                    document.addEventListener('mouseup', endDrag);
+                }
+            }
+
+            // 拖拽过程
+            function drag(e) {
+                if (selectedPiece) {
+                    e.preventDefault();
+                    // 更新棋子位置
+                    selectedPiece.style.position = 'absolute';
+                    selectedPiece.style.left = (e.clientX - dragOffset.x) + 'px';
+                    selectedPiece.style.top = (e.clientY - dragOffset.y) + 'px';
+                    selectedPiece.style.zIndex = '100';
+                }
+            }
+
+            // 结束拖拽
+            function endDrag(e) {
+                if (selectedPiece) {
+                    // 检查是否拖到了地图上
+                    const gridRect = gridContainer.getBoundingClientRect();
+                    const pieceRect = selectedPiece.getBoundingClientRect();
+
+                    if (pieceRect.left >= gridRect.left && pieceRect.right <= gridRect.right &&
+                        pieceRect.top >= gridRect.top && pieceRect.bottom <= gridRect.bottom) {
+                        // 拖到了地图上，创建新的棋子在地图上
+                        createBoardPiece(selectedPiece);
+                        // 从悬浮窗中移除原棋子
+                        selectedPiece.remove();
+                        // 关闭悬浮窗
+                        floatingWindow.style.display = 'none';
+                        floatingToggle.innerHTML = '<span>打开悬浮窗</span>';
+                    } else {
+                        // 没有拖到地图上，恢复棋子位置
+                        selectedPiece.style.position = '';
+                        selectedPiece.style.left = '';
+                        selectedPiece.style.top = '';
+                        selectedPiece.style.zIndex = '';
+                    }
+                    // 移除选中状态
+                    selectedPiece.classList.remove('selected');
+                    selectedPiece = null;
+                    // 移除鼠标事件
+                    document.removeEventListener('mousemove', drag);
+                    document.removeEventListener('mouseup', endDrag);
+                }
+            }
+
+            // 在地图上创建棋子
+            function createBoardPiece(piece) {
+                const boardPiece = document.createElement('div');
+                boardPiece.className = 'board-piece';
+                boardPiece.textContent = piece.textContent;
+                boardPiece.style.background = piece.style.background;
+
+                // 计算棋子在地图上的位置
+                const gridRect = gridContainer.getBoundingClientRect();
+                const x = (piece.getBoundingClientRect().left - gridRect.left) / gridRect.width * 100;
+                const y = (piece.getBoundingClientRect().top - gridRect.top) / gridRect.height * 100;
+
+                boardPiece.style.left = x + '%';
+                boardPiece.style.top = y + '%';
+
+                // 添加拖拽功能
+                let isDragging = false;
+                let boardPieceOffset = { x: 0, y: 0 };
+
+                boardPiece.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    isDragging = true;
+                    const rect = boardPiece.getBoundingClientRect();
+                    boardPieceOffset.x = e.clientX - rect.left;
+                    boardPieceOffset.y = e.clientY - rect.top;
+                });
+
+                document.addEventListener('mousemove', function (e) {
+                    if (isDragging) {
+                        e.preventDefault();
+                        const gridRect = gridContainer.getBoundingClientRect();
+                        let x = e.clientX - gridRect.left - boardPieceOffset.x;
+                        let y = e.clientY - gridRect.top - boardPieceOffset.y;
+
+                        // 限制棋子在地图范围内
+                        x = Math.max(0, Math.min(x, gridRect.width - boardPiece.offsetWidth));
+                        y = Math.max(0, Math.min(y, gridRect.height - boardPiece.offsetHeight));
+
+                        boardPiece.style.left = (x / gridRect.width * 100) + '%';
+                        boardPiece.style.top = (y / gridRect.height * 100) + '%';
+                    }
+                });
+
+                document.addEventListener('mouseup', function () {
+                    isDragging = false;
+                });
+
+                gridContainer.appendChild(boardPiece);
+            }
+
+            // 为悬浮窗中的棋子添加拖拽开始事件
+            piecesContainer.addEventListener('mousedown', startDrag);
+        });
+    </script>
+</body>
+
+</html>
